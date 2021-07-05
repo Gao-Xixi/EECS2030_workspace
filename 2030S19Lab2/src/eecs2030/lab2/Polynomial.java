@@ -55,6 +55,14 @@ public class Polynomial implements Comparable<Polynomial> {
 	 *             if {@code i} is negative
 	 */
 	public Polynomial(double a, int i) {
+		if(i < 0) {
+			throw new IllegalArgumentException();
+		}
+		else {
+			this.cf = new double[i + 1];
+			cf[i] = a;
+			this.degree = i;
+		}
 
 	}
 	
@@ -91,11 +99,36 @@ public class Polynomial implements Comparable<Polynomial> {
 	 *            the coefficients array
 	 * @throws IllegalArgumentException
 	 *             if {@code cf} is empty
+	 *             
 	 */
 	public Polynomial(double[] cf) {
-
+		if(cf.length == 0) {
+			throw new IllegalArgumentException();
+		}
+		else {
+			this.cf = new double[cf.length];
+			for(int i =0;i < cf.length;i++) {
+				this.cf[i] = cf[i];
+		
+			}
+			this.degree = cf.length - 1;
+			
+		}
 	}
-
+	 // pre-compute the degree of the polynomial, in case of leading zero coefficients
+    // (that is, the length of the array need not relate to the degree of the polynomial)
+	/**
+	 *  find online
+	 */
+    private void reduce() {
+        degree = -1;
+        for (int i = cf.length - 1; i >= 0; i--) {
+            if (cf[i] != 0) {
+                degree = i;
+                return;
+            }
+        }
+    }
 	/**
 	 * Creates a polynomial with zero degree and one zero coefficient.
 	 * 
@@ -104,7 +137,10 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * </pre>
 	 */
 	public Polynomial() {
-
+		cf = new double[1];
+		cf[0] = 0;
+		degree = 0;
+		
 	}
 
 	/**
@@ -134,7 +170,11 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * @return the polynomial whose value is {@code (p(x) + q(x))}
 	 */
 	public Polynomial plus(Polynomial q) {
-		return null;
+		Polynomial result = new Polynomial(0 , this.cf.length -1);
+		for(int i =0; i < this.cf.length; i++) {
+			result.cf[i] = this.cf[i] + q.cf[i];
+		}
+		return result;
 	}
 
 	/**
@@ -146,7 +186,11 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * @return the polynomial whose value is {@code (p(x) - q(x))}
 	 */
 	public Polynomial minus(Polynomial q) {
-		return null;
+		Polynomial result = new Polynomial(0 , this.cf.length -1);
+		for(int i =0; i < this.cf.length; i++) {
+			result.cf[i] = this.cf[i] - q.cf[i];
+		}
+		return result;
 	}
 
 	/**
@@ -158,7 +202,13 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * @return the polynomial whose value is {@code (p(x) * q(x))}
 	 */
 	public Polynomial times(Polynomial q) {
-		return null;
+		Polynomial result = new Polynomial(0 , this.cf.length + q.cf.length - 2);
+		for(int i =0; i < this.cf.length; i++) {
+			for(int j = 0; j < q.cf.length; j++)
+				result.cf[i + j] += this.cf[i] * q.cf[j];
+		}
+		result.reduce();
+		return result;
 	}
 
 	/**
@@ -170,7 +220,12 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * @return the polynomial whose value is {@code (p(q(x)))}
 	 */
 	public Polynomial compose(Polynomial q) {
-		return null;
+		Polynomial poly = new Polynomial(0, 0);
+        for (int i = this.degree; i >= 0; i--) {
+            Polynomial term = new Polynomial(this.cf[i], 0);
+            poly = term.plus(q.times(poly));
+        }
+        return poly;
 	}
 
 	/**
@@ -179,7 +234,13 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * @return the polynomial whose value is {@code p'(x)}
 	 */
 	public Polynomial derive() {
-		return null;
+		if (degree == 0) return new Polynomial(0, 0);
+		Polynomial poly = new Polynomial(0, this.degree -1);
+		poly.degree = degree - 1;
+		for(int i = 0; i < degree; i++) {
+        	poly.cf[i] = (i+1) * this.cf[i+1];
+		}
+		return poly;
 	}
 
 	/**
@@ -190,7 +251,12 @@ public class Polynomial implements Comparable<Polynomial> {
 	 * @return the value of evaluating {@code (p(x))}
 	 */
 	public double evaluate(double x) {
-		return 0;
+		double result = 0;
+		for(int i =0; i < this.cf.length; i++) {
+			result = result + this.cf[i] * Math.pow(x, i);
+		}
+		
+		return result;
 	}
 
 	/**
@@ -202,7 +268,7 @@ public class Polynomial implements Comparable<Polynomial> {
 	 */
 	@Override
 	public int hashCode() {
-		return 0;
+		return 31 * degree + Arrays.hashCode(cf);
 	}
 
 	/**
@@ -217,7 +283,21 @@ public class Polynomial implements Comparable<Polynomial> {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		return false;
+		if(this == obj) {return true;}
+		if(obj == null) {return false;}
+		if(this.getClass() != obj.getClass()) {return false;}
+		Polynomial other = (Polynomial) obj;
+		if(this.degree != other.degree) {
+			return false;
+		}
+		else {
+			boolean result = true;
+			for(int i =0; i < this.cf.length; i++) {
+				result = result && this.cf[i] == other.cf[i];
+			}
+			return result;
+		}
+		
 	}
 
 	/**
@@ -234,7 +314,25 @@ public class Polynomial implements Comparable<Polynomial> {
 	 */
 	@Override
 	public int compareTo(Polynomial q) {
-		return 0;
+		if(this.degree == q.degree ) {
+			for(int i =0; i < this.cf.length; i++) {
+				if(this.cf[i] > q.cf[i]) {
+					return 1;
+				}
+				else if (this.cf[i] < q.cf[i]) {
+					return -1;
+				}
+			}
+			return 0;
+			
+		}
+		else if(this.degree > q.degree) {
+			return 1;
+			
+		}
+		else {
+			return -1;
+		}
 	}
 
 	/**
@@ -258,6 +356,25 @@ public class Polynomial implements Comparable<Polynomial> {
 	 */
 	@Override
 	public String toString() {
-		return "";
+		if      (degree == -1) return "0";
+        else if (degree ==  0) return "" + cf[0];
+        else if (degree ==  1 ) {
+        	if      (cf[0] == 0) return cf[1] + "x";
+            else if (cf[0]  > 0) return cf[1] + "x" + " + " + (cf[0]);
+            else if (cf[0]  < 0) return cf[1] + "x" + " - " + (-cf[0]);
+        	
+        }
+        else if (degree ==  1 && cf[0] != 0) return cf[1] + " x " + cf[0];
+        String s = cf[degree] + "x^" + degree;
+        for (int i = degree - 1; i >= 0; i--) {
+            if      (cf[i] == 0) continue;
+            else if (cf[i]  > 0) s = s + " + " + (cf[i]);
+            else if (cf[i]  < 0) s = s + " - " + (-cf[i]);
+            if      (i == 1) s = s + "x";
+            else if (i >  1) s = s + "x^" + i;
+        }
+        return s;
+    
+		
 	}
 }
